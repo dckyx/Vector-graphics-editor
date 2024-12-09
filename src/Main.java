@@ -44,6 +44,8 @@ class DrawingPanel extends JPanel {
                 } else if (currentShape instanceof Ellipse2D elipse){
                     elipse.setFrame(elipse.getX(), elipse.getY(), e.getX() - elipse.getX(), e.getY() - elipse.getY());
                     repaint();
+                }else{
+                    System.out.println("Chuj");
                 }
             }
         });
