@@ -48,6 +48,8 @@ class DrawingPanel extends JPanel {
                     case "Ellipse"   -> currentShape = new EllipseShape(startX, startY, 0, 0);
                     case "Circle"    -> currentShape = new EllipseShape(startX, startY, 0, 0);
                     case "łuk"       -> currentShape = new LukShape(startX, startY, 0, 0, 0, 90);
+                    case "Linia"     -> currentShape = new Linia(startX,startY,0,0);
+                    case "Brush"     -> currentShape = new BrushShape(startX,startY);
                     default          -> currentShape = null;
                 }
 
@@ -87,6 +89,11 @@ class DrawingPanel extends JPanel {
                     }
                 } else if (currentShape instanceof LukShape arc) {
                     arc.setBounds(newX, newY, width, height);
+                } else if (currentShape instanceof Linia linia){
+                    linia.setBounds(newX, newY, width, height);
+                } else if(currentShape instanceof BrushShape brush){
+                    brush.addPoint(e.getX(), e.getY());
+                    repaint();
                 }
 
                 repaint();
@@ -168,6 +175,17 @@ class ToolBar extends JToolBar {
             System.out.println("Circle tool selected");
         });
 
+        JButton liniaButton = new JButton("Linia");
+        liniaButton.addActionListener(e->{
+            currentTool = "Linia";
+            System.out.println("Line tool selected");
+        });
+
+        JButton brushButton = new JButton("Brush");
+        brushButton.addActionListener(e->{
+            currentTool = "Brush";
+            System.out.println("Brush tool selected");
+        });
         JButton colorButton = new JButton("Color");
         colorButton.addActionListener(e -> {
             Color color = JColorChooser.showDialog(drawingPanel, "Choose a color", selectedColor);
@@ -181,6 +199,8 @@ class ToolBar extends JToolBar {
         add(ellipseButton);
         add(circleButton);
         add(lukButton);
+        add(liniaButton);
+        add(brushButton);
         add(colorButton);
         add(undoButton);
         add(redoButton);
@@ -420,5 +440,91 @@ class LukShape extends ColoredShape {
 
     public Arc2D getArc() {
         return arc;
+    }
+}
+
+class Linia extends ColoredShape {
+    private Line2D line;
+
+    public Linia(double x, double y, double width, double height) {
+        line = new Line2D.Double(x, y, x + width, y + height);
+    }
+
+    @Override
+    public void setBounds(double x, double y, double width, double height) {
+        line.setLine(x, y, x + width, y + height);
+    }
+
+    @Override
+    public void paint(Graphics2D g2d) {
+        g2d.setColor(color);
+        g2d.draw(line);
+    }
+
+    @Override
+    public double getWidth() {
+        return Math.abs(line.getX2() - line.getX1());
+    }
+
+    @Override
+    public double getHeight() {
+        return Math.abs(line.getY2() - line.getY1());
+    }
+
+    @Override
+    public double getX() {
+        return Math.min(line.getX1(), line.getX2());
+    }
+
+    @Override
+    public double getY() {
+        return Math.min(line.getY1(), line.getY2());
+    }
+
+    public Line2D getLine() {
+        return line;
+    }
+}
+class BrushShape extends ColoredShape {
+    private Path2D path;
+
+    public BrushShape(double startX, double startY) {
+        path = new Path2D.Double();
+        path.moveTo(startX, startY);
+    }
+
+    @Override
+    public void setBounds(double x, double y, double width, double height) {
+    }
+
+
+    public void addPoint(double x, double y) {
+        path.lineTo(x, y);
+    }
+
+    @Override
+    public void paint(Graphics2D g2d) {
+        g2d.setColor(color);
+        g2d.draw(path);
+    }
+
+    @Override
+    public double getWidth() {
+        return path.getBounds2D().getWidth();
+    }
+
+    @Override
+    public double getHeight() {
+        return path.getBounds2D().getHeight();
+    }
+
+    @Override
+    public double getX() {
+        return path.getBounds2D().getX();
+    }
+
+    @Override
+    public double getY() {
+        return path.getBounds2D().getY();
     }
 }
