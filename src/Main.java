@@ -495,12 +495,9 @@ class BrushShape extends ColoredShape {
 
     @Override
     public void setBounds(double x, double y, double width, double height) {
-        // Niekoniecznie potrzebujesz tej metody dla pędzla,
-        // chyba że chcesz spójności z ColoredShape.
-        // Możesz zostawić pustą bądź użyć do czegoś innego.
     }
 
-    // Dodawanie kolejnych punktów
+
     public void addPoint(double x, double y) {
         path.lineTo(x, y);
     }
@@ -511,8 +508,6 @@ class BrushShape extends ColoredShape {
         g2d.draw(path);
     }
 
-    // Te metody można zaimplementować minimalnie (np. zera),
-    // albo postarać się wyznaczać bounding box z path.getBounds2D().
     @Override
     public double getWidth() {
         return path.getBounds2D().getWidth();
