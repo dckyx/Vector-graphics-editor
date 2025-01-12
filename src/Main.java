@@ -5,7 +5,6 @@ import java.awt.geom.*;
 import java.util.*;
 import java.util.List;
 
-// ---------------------- Main Application ----------------------
 public class Main {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
@@ -26,7 +25,7 @@ public class Main {
     }
 }
 
-// ---------------------- DrawingPanel (View + partial Controller) ----------------------
+
 class DrawingPanel extends JPanel implements ShapeObserver{
     private final List<ColoredShape> shapes = new ArrayList<>();
     private ColoredShape currentShape = null;
@@ -39,7 +38,6 @@ class DrawingPanel extends JPanel implements ShapeObserver{
 
     private ToolBar toolBar;
 
-    // Command Pattern
     private final CommandManager commandManager = new CommandManager();
 
     public DrawingPanel() {
@@ -156,7 +154,6 @@ class DrawingPanel extends JPanel implements ShapeObserver{
                 double currentX = e.getX();
                 double currentY = e.getY();
 
-                //dynamiczne rysowanie
                 if (currentShape instanceof BrushShape brush) {
                     brush.addPoint(currentX, currentY);
                 } else if (currentShape instanceof ArcShape arc) {
@@ -198,9 +195,7 @@ class DrawingPanel extends JPanel implements ShapeObserver{
         return null;
     }
 
-    // Prosta metoda – np. sprawdzamy bounding box
     private boolean isInsideShape(ColoredShape shape, double px, double py) {
-        // Można weryfikować bounding box lub sam path
         double x = shape.getX();
         double y = shape.getY();
         double w = shape.getWidth();
@@ -211,7 +206,6 @@ class DrawingPanel extends JPanel implements ShapeObserver{
         return false;
     }
 
-    // Obsługa Undo/Redo
     public void undo() {
         commandManager.undo();
         repaint();
@@ -266,7 +260,6 @@ class DrawingPanel extends JPanel implements ShapeObserver{
     }
 }
 
-// ---------------------- ToolBar (Controller) ----------------------
 class ToolBar extends JToolBar {
     private String currentTool = "Rectangle";
     private Color selectedColor = Color.BLACK;
@@ -335,7 +328,6 @@ class ToolBar extends JToolBar {
     }
 }
 
-// ---------------------- CommandManager ----------------------
 class CommandManager {
     private final Stack<Command> undoStack = new Stack<>();
     private final Stack<Command> redoStack = new Stack<>();
@@ -366,7 +358,6 @@ class CommandManager {
     }
 }
 
-// ---------------------- Commands ----------------------
 interface Command {
     void execute();
     void undo();
@@ -427,7 +418,6 @@ class MoveCommand implements Command {
     }
 }
 
-// ---------------------- Shape Factory (Factory Method) ----------------------
 class ShapeFactory {
     public static ColoredShape createShape(String tool, double x, double y) {
         switch (tool) {
@@ -459,7 +449,6 @@ class ShapeFactory {
     }
 }
 
-// ---------------------- Abstract Classes & Concrete Shapes ----------------------
 
 abstract class ColoredShape {
     protected Color color = Color.BLACK;
@@ -482,9 +471,7 @@ abstract class ColoredShape {
     public abstract void paint(Graphics2D g2d);
     public abstract void setBounds(double x, double y, double w, double h);
 
-    // Przykładowa metoda do przesuwania kształtów
     public void move(double newX, double newY) {
-        // Możesz zostawić pustą lub zaimplementować w klasach pochodnych
     }
 
     public abstract double getWidth();
@@ -494,7 +481,6 @@ abstract class ColoredShape {
     }
 }
 
-// RectangleShape
 class RectangleShape extends ColoredShape {
     private final Rectangle2D.Double rect = new Rectangle2D.Double();
 
@@ -600,7 +586,6 @@ class EllipseShape extends ColoredShape {
     }
 }
 
-// LineShape
 class LineShape extends ColoredShape {
     private final Line2D.Double line = new Line2D.Double();
 
@@ -632,7 +617,6 @@ class LineShape extends ColoredShape {
 
     @Override
     public void setBounds(double x, double y, double w, double h) {
-        // x,y to lewy górny, x+w, y+h to prawy dolny
         line.setLine(x, y, x + w, y + h);
     }
 
@@ -654,7 +638,6 @@ class LineShape extends ColoredShape {
     }
 }
 
-// ArcShape (łuk)
 class ArcShape extends ColoredShape {
     private final Arc2D.Double arc = new Arc2D.Double();
 
@@ -723,7 +706,6 @@ class ArcShape extends ColoredShape {
     }
 }
 
-// BrushShape (pędzel)
 class BrushShape extends ColoredShape {
     private final Path2D.Double path = new Path2D.Double();
 
@@ -755,7 +737,6 @@ class BrushShape extends ColoredShape {
 
     @Override
     public void setBounds(double x, double y, double w, double h) {
-        // brush jest dynamiczny
     }
 
     @Override
@@ -773,7 +754,6 @@ class BrushShape extends ColoredShape {
     }
 }
 
-// PolygonShape (wielokąt)
 class PolygonShape extends ColoredShape {
     private final Polygon polygon = new Polygon();
     public double lastX;
