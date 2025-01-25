@@ -1,10 +1,22 @@
+import org.apache.batik.dom.GenericDOMImplementation;
+import org.apache.batik.svggen.SVGGraphics2D;
+import org.w3c.dom.DOMImplementation;
+import org.w3c.dom.Document;
+
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.awt.geom.*;
-import java.util.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.Writer;
+import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Stack;
 public class Main {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
@@ -14,10 +26,17 @@ public class Main {
 
             DrawingPanel drawingPanel = new DrawingPanel();
             ToolBar toolbar = new ToolBar(drawingPanel);
-            drawingPanel.setToolBar(toolbar);
+            GroupingToolBar gtb = new GroupingToolBar(drawingPanel);
+            GraphicAdapter ga = new GraphicAdapter(drawingPanel);
+            MenuBarManager mbm = new MenuBarManager(frame, drawingPanel);
+            frame.setJMenuBar(mbm.createMenuBar(drawingPanel));
 
+
+            drawingPanel.setToolBar(toolbar);
             toolbar.addShapeObserver(drawingPanel);
+
             frame.add(drawingPanel, BorderLayout.CENTER);
+            frame.add(gtb, BorderLayout.SOUTH);
             frame.add(toolbar, BorderLayout.NORTH);
 
             frame.setVisible(true);
@@ -25,7 +44,118 @@ public class Main {
     }
 }
 
+class GraphicAdapter {
+    private final DrawingPanel drawingPanel;
 
+    public GraphicAdapter(DrawingPanel drawingPanel) {
+        this.drawingPanel = drawingPanel;
+    }
+
+    public void exportToSVG(String filePath) throws Exception {
+        DOMImplementation domImpl = GenericDOMImplementation.getDOMImplementation();
+        Document document = domImpl.createDocument(null, "svg", null);
+        SVGGraphics2D svgGenerator = new SVGGraphics2D(document);
+
+        drawingPanel.paint(svgGenerator);
+
+        try (Writer writer = new FileWriter(filePath)) {
+            svgGenerator.stream(writer, true);
+        }
+    }
+}
+class MenuBarManager {
+
+    private final JFrame frame;
+    private final DrawingPanel drawingPanel;
+
+    public MenuBarManager(JFrame frame, DrawingPanel drawingPanel) {
+        this.frame = frame;
+        this.drawingPanel = drawingPanel;
+    }
+
+    public JMenuBar createMenuBar(DrawingPanel dw) {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+
+        JMenuItem saveToSVG = new JMenuItem("Save as SVG");
+        saveToSVG.addActionListener(e -> saveAsSVG());
+        fileMenu.add(saveToSVG);
+
+        JMenuItem saveAsPng = new JMenuItem("Save as PNG");
+        saveAsPng.addActionListener(e -> saveAsImage(dw,"png"));
+        fileMenu.add(saveAsPng);
+
+        JMenuItem saveAsJpeg = new JMenuItem("Save as JPEG");
+        saveAsJpeg.addActionListener(e -> saveAsImage(dw,"jpeg"));
+        fileMenu.add(saveAsJpeg);
+
+        menuBar.add(fileMenu);
+
+        return menuBar;
+    }
+
+    private void saveAsSVG() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save as SVG");
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("SVG Files", "svg"));
+
+        int userSelection = fileChooser.showSaveDialog(frame);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            String filePath = fileToSave.getAbsolutePath();
+            if (!filePath.endsWith(".svg")) {
+                filePath += ".svg";
+            }
+
+            try {
+                GraphicAdapter graphicAdapter = new GraphicAdapter(drawingPanel);
+                graphicAdapter.exportToSVG(filePath);
+                JOptionPane.showMessageDialog(frame, "File saved: " + filePath);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(frame, "Error saving SVG: " + ex.getMessage());
+            }
+        }
+    }
+
+    public static void saveAsImage(DrawingPanel drawingPanel, String format) {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save as " + format.toUpperCase());
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(format.toUpperCase() + " Files", format.toLowerCase()));
+        int userSelection = fileChooser.showSaveDialog(null);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            String filePath = fileToSave.getAbsolutePath();
+            if (!filePath.endsWith("." + format.toLowerCase())) {
+                filePath += "." + format.toLowerCase();
+            }
+            try {
+                BufferedImage image = new BufferedImage(
+                        drawingPanel.getWidth(),
+                        drawingPanel.getHeight(),
+                        format.equalsIgnoreCase("jpeg") ? BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB
+                );
+                Graphics2D g2d = image.createGraphics();
+                drawingPanel.paint(g2d);
+                g2d.dispose();
+                File outputFile = new File(filePath);
+                boolean success = ImageIO.write(image, format.toLowerCase(), outputFile);
+
+                if (success) {
+                    JOptionPane.showMessageDialog(null, "File saved successfully: " + filePath);
+                } else {
+                    throw new Exception("Unsupported format: " + format);
+                }
+
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, "Error saving image: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        }
+    }
+}
 class DrawingPanel extends JPanel implements ShapeObserver{
     private final List<ColoredShape> shapes = new ArrayList<>();
     private ColoredShape currentShape = null;
@@ -33,7 +163,8 @@ class DrawingPanel extends JPanel implements ShapeObserver{
     private double startX, startY;
     private double offsetX, offsetY;
     private ColoredShape selectedShape = null;
-    private Color currentColor = Color.BLACK;
+    private final Color currentColor = Color.BLACK;
+    private final List<ColoredShape> selectedShapes = new ArrayList<>();
 
 
     private ToolBar toolBar;
@@ -54,11 +185,19 @@ class DrawingPanel extends JPanel implements ShapeObserver{
                 String tool = toolBar.getCurrentTool();
 
                 if ("Move".equals(tool)) {
-                    selectedShape = findShapeAt(e.getX(), e.getY());
-                    if (selectedShape != null) {
-                        offsetX = e.getX() - selectedShape.getX();
-                        offsetY = e.getY() - selectedShape.getY();
+                    if (!e.isShiftDown()) {
+                        selectedShapes.clear();
                     }
+                    ColoredShape found = findShapeAt(e.getX(), e.getY());
+                    if (found != null) {
+                        selectedShapes.add(found);
+                        offsetX = e.getX() - found.getX();
+                        offsetY = e.getY() - found.getY();
+                        startX = found.getX();
+                        startY = found.getY();
+                        selectedShape = found;
+                    }
+                    repaint();
                     return;
                 }
 
@@ -77,20 +216,22 @@ class DrawingPanel extends JPanel implements ShapeObserver{
                         ((BrushShape) currentShape).addPoint(startX, startY);
                     }
                 }
+
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
                 String tool = toolBar.getCurrentTool();
                 if ("Move".equals(tool) && selectedShape != null) {
-                        double oldX = selectedShape.getX();
-                        double oldY = selectedShape.getY();
-                        commandManager.executeCommand(new MoveCommand(
-                                selectedShape, oldX, oldY, selectedShape.getX(), selectedShape.getY()
-                        ));
-                        selectedShape = null;
-                        repaint();
-                        return;
+                    double oldX = startX;
+                    double oldY = startY;
+                    double newX = selectedShape.getX();
+                    double newY = selectedShape.getY();
+                    commandManager.executeCommand(new MoveCommand(selectedShape, oldX, oldY, newX, newY));
+
+                    selectedShape = null;
+                    repaint();
+                    return;
                     }
                     if (currentShape != null) {
                         if ("Brush".equals(tool)) {
@@ -183,7 +324,31 @@ class DrawingPanel extends JPanel implements ShapeObserver{
                 repaint();
             }
         });
+    }
+    public void groupSelectedShapes() {
+        if (selectedShapes.size() < 2) {
+            return;
+        }
+        ShapeGroup group = new ShapeGroup();
 
+        for (ColoredShape s : selectedShapes) {
+            group.add(s);
+            shapes.remove(s);
+        }
+        shapes.add(group);
+        selectedShapes.clear();
+        selectedShapes.add(group);
+        repaint();
+    }
+
+    public void ungroupSelectedShapes() {
+        if (selectedShapes.size() == 1 && selectedShapes.get(0) instanceof ShapeGroup group) {
+            List<ColoredShape> children = group.getChildren();
+            shapes.addAll(children);
+            shapes.remove(group);
+            selectedShapes.clear();
+            repaint();
+        }
     }
     private ColoredShape findShapeAt(double px, double py) {
         for (int i = shapes.size() - 1; i >= 0; i--) {
@@ -200,10 +365,7 @@ class DrawingPanel extends JPanel implements ShapeObserver{
         double y = shape.getY();
         double w = shape.getWidth();
         double h = shape.getHeight();
-        if (px >= x && px <= x + w && py >= y && py <= y + h) {
-            return true;
-        }
-        return false;
+        return px >= x && px <= x + w && py >= y && py <= y + h;
     }
 
     public void undo() {
@@ -270,18 +432,17 @@ class ToolBar extends JToolBar {
     public ToolBar(DrawingPanel drawingPanel) {
         JSlider strokeSlider = new JSlider(1, 21, lineSize);
         strokeSlider.addChangeListener(e -> lineSize = strokeSlider.getValue());
-
         addButton("Rectangle", () -> currentTool = "Rectangle");
-        addButton("Ellipse",   () -> currentTool = "Ellipse");
-        addButton("Circle",    () -> currentTool = "Circle");
-        addButton("Polygon",   () -> currentTool = "Polygon");
-        addButton("Arc",       () -> currentTool = "ArcShape");
-        addButton("Line",      () -> currentTool = "Line");
-        addButton("Brush",     () -> currentTool = "Brush");
+        addButton("Ellipse", () -> currentTool = "Ellipse");
+        addButton("Circle", () -> currentTool = "Circle");
+        addButton("Polygon", () -> currentTool = "Polygon");
+        addButton("Arc", () -> currentTool = "ArcShape");
+        addButton("Line", () -> currentTool = "Line");
+        addButton("Brush", () -> currentTool = "Brush");
         add(strokeSlider);
-        addButton("Move",      () -> currentTool = "Move");
-        addButton("Undo",      drawingPanel::undo);
-        addButton("Redo",      drawingPanel::redo);
+        addButton("Move", () -> currentTool = "Move");
+        addButton("Undo", drawingPanel::undo);
+        addButton("Redo", drawingPanel::redo);
 
         JButton colorButton = new JButton("Color");
         colorButton.addActionListener(e -> {
@@ -295,7 +456,7 @@ class ToolBar extends JToolBar {
 
     private void addButton(String name, Runnable action) {
         JButton btn = new JButton(name);
-        btn.addActionListener(e ->{
+        btn.addActionListener(e -> {
             setCurrentTool(name);
             action.run();
         });
@@ -313,10 +474,12 @@ class ToolBar extends JToolBar {
     public int getLineSize() {
         return lineSize;
     }
+
     private void setCurrentTool(String tool) {
         currentTool = tool;
         notifyObservers(tool);
     }
+
     public void addShapeObserver(ShapeObserver observer) {
         observers.add(observer);
     }
@@ -325,6 +488,21 @@ class ToolBar extends JToolBar {
         for (ShapeObserver observer : observers) {
             observer.onShapeSelected(tool);
         }
+    }
+
+}
+class GroupingToolBar extends JToolBar {
+    public GroupingToolBar(DrawingPanel drawingPanel) {
+        setOrientation(HORIZONTAL);
+        setFloatable(false);
+
+        JButton groupButton = new JButton("Group");
+        groupButton.addActionListener(e -> drawingPanel.groupSelectedShapes());
+        add(groupButton);
+
+        JButton ungroupButton = new JButton("Ungroup");
+        ungroupButton.addActionListener(e -> drawingPanel.ungroupSelectedShapes());
+        add(ungroupButton);
     }
 }
 
@@ -449,7 +627,6 @@ class ShapeFactory {
     }
 }
 
-
 abstract class ColoredShape {
     protected Color color = Color.BLACK;
     public abstract Rectangle2D getBoundingBox();
@@ -478,6 +655,85 @@ abstract class ColoredShape {
     public abstract double getHeight();
 
     public void addPoint(int x, int y) {
+    }
+}
+class ShapeGroup extends ColoredShape{
+    private final List<ColoredShape> children = new ArrayList<>();
+    @Override
+    public Rectangle2D getBoundingBox() {
+        if(children.isEmpty())
+        {
+            return new Rectangle2D.Double();
+        }
+        Rectangle2D bnds = null;
+        for(ColoredShape s : children){
+            if(bnds == null){
+                bnds = s.getBoundingBox();
+            }else{
+                bnds = bnds.createUnion(s.getBoundingBox());
+            }
+        }
+        return bnds;
+    }
+
+    @Override
+    public double getX() {
+        return getBoundingBox().getX();
+    }
+
+    @Override
+    public double getY() {
+        return getBoundingBox().getY();
+    }
+
+    @Override
+    public void paint(Graphics2D g2d) {
+        for(ColoredShape s : children){
+            s.paint(g2d);
+        }
+    }
+
+    @Override
+    public void setBounds(double x, double y, double w, double h) {
+        Rectangle2D bounds = getBoundingBox();
+        double scaleX = w / bounds.getWidth();
+        double scaleY = h / bounds.getHeight();
+
+        for (ColoredShape shape : children) {
+            double newX = x + (shape.getX() - bounds.getX()) * scaleX;
+            double newY = y + (shape.getY() - bounds.getY()) * scaleY;
+            double newWidth = shape.getWidth() * scaleX;
+            double newHeight = shape.getHeight() * scaleY;
+            shape.setBounds(newX, newY, newWidth, newHeight);
+        }
+    }
+    @Override
+    public void move(double newX, double newY) {
+        Rectangle2D oldBounds = getBoundingBox();
+        double dx = newX - oldBounds.getX();
+        double dy = newY - oldBounds.getY();
+
+        for (ColoredShape shape : children) {
+            shape.move(shape.getX() + dx, shape.getY() + dy);
+        }
+    }
+    @Override
+    public double getWidth() {
+        return getBoundingBox().getWidth();
+    }
+
+    @Override
+    public double getHeight() {
+        return getBoundingBox().getHeight();
+    }
+    public void add(ColoredShape cs){
+        children.add(cs);
+    }
+    public void remove(ColoredShape cs){
+        children.remove(cs);
+    }
+    public List<ColoredShape> getChildren(){
+        return children;
     }
 }
 
