@@ -27,7 +27,6 @@ public class Main {
             DrawingPanel drawingPanel = new DrawingPanel();
             ToolBar toolbar = new ToolBar(drawingPanel);
             GroupingToolBar gtb = new GroupingToolBar(drawingPanel);
-            GraphicAdapter ga = new GraphicAdapter(drawingPanel);
             MenuBarManager mbm = new MenuBarManager(frame, drawingPanel);
             frame.setJMenuBar(mbm.createMenuBar(drawingPanel));
 
@@ -435,7 +434,7 @@ class ToolBar extends JToolBar {
         addButton("Rectangle", () -> currentTool = "Rectangle");
         addButton("Ellipse", () -> currentTool = "Ellipse");
         addButton("Circle", () -> currentTool = "Circle");
-        addButton("Polygon", () -> currentTool = "Polygon");
+//        addButton("Polygon", () -> currentTool = "Polygon");
         addButton("Arc", () -> currentTool = "ArcShape");
         addButton("Line", () -> currentTool = "Line");
         addButton("Brush", () -> currentTool = "Brush");
@@ -609,30 +608,27 @@ class ShapeFactory {
             case "Ellipse" -> new EllipseBuilder()
                     .setPosition(x, y)
                     .setSize(80, 40)
-                    .setColor(Color.RED)
+                    .setColor(Color.BLACK)
                     .build();
             case "Circle" -> new CircleBuilder()
                     .setPosition(x, y)
                     .setSize(50,50)
-                    .setColor(Color.BLUE)
+                    .setColor(Color.BLACK)
                     .setLineSize(3f)
                     .build();
             case "Line" -> new LineBuilder()
                     .setStart(x, y)
                     .setEnd(x + 100, y + 100)
-                    .setColor(Color.GREEN)
+                    .setColor(Color.BLACK)
                     .setLineSize(1.5f)
                     .build();
             case "ArcShape" -> new ArcBuilder()
                     .setPosition(x, y)
                     .setSize(100, 50)
-                    .setColor(Color.MAGENTA)
+                    .setColor(Color.BLACK)
                     .setLineSize(2f)
                     .build();
-            case "Brush" -> new BrushBuilder()
-                    .setColor(Color.CYAN)
-                    .setLineSize(1f)
-                    .build();
+            case "Brush" -> new BrushShape(x,y);
             default -> null;
         };
     }
@@ -976,8 +972,10 @@ class ArcShape extends ColoredShape {
 
 class BrushShape extends ColoredShape {
     private final Path2D.Double path = new Path2D.Double();
-
+    private double startX, startY;
     public BrushShape(double x, double y) {
+        this.startX = x;
+        this.startY = y;
         path.moveTo(x, y);
     }
 
@@ -988,12 +986,12 @@ class BrushShape extends ColoredShape {
 
     @Override
     public double getX() {
-        return 0;
+        return startX;
     }
 
     @Override
     public double getY() {
-        return 0;
+        return startY;
     }
 
     @Override
@@ -1295,7 +1293,6 @@ class BrushBuilder implements ShapeBuilder {
 
     @Override
     public ShapeBuilder setSize(double width, double height) {
-        // Nie dotyczy BrushShape
         return this;
     }
 
