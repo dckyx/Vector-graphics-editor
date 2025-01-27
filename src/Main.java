@@ -542,13 +542,6 @@ interface Command {
     void redo();
 }
 
-interface ShapeBuilder {
-    ShapeBuilder setPosition(double x, double y);
-    ShapeBuilder setSize(double width, double height);
-    ShapeBuilder setColor(Color color);
-    ShapeBuilder setLineSize(float lineSize);
-    ColoredShape build();
-}
 
 class AddShapeCommand implements Command {
     private final DrawingPanel panel;
@@ -606,34 +599,45 @@ class MoveCommand implements Command {
 
 class ShapeFactory {
     public static ColoredShape createShape(String tool, double x, double y) {
-        switch (tool) {
-            case "Rectangle" -> {
-                return new RectangleShape(x, y, 0, 0);
-            }
-            case "Ellipse" -> {
-                return new EllipseShape(x, y, 0, 0, false);
-            }
-            case "Circle" -> {
-                return new EllipseShape(x, y, 0, 0, true);
-            }
-            case "Polygon" -> {
-                return new PolygonShape();
-            }
-            case "ArcShape" -> {
-                return new ArcShape(x, y, 0, 0, 0, 90);
-            }
-            case "Brush" -> {
-                return new BrushShape(x, y);
-            }
-            case "Line" -> {
-                return new LineShape(x, y, x, y);
-            }
-            default -> {
-                return null;
-            }
-        }
+        return switch (tool) {
+            case "Rectangle" -> new RectangleBuilder()
+                    .setPosition(x, y)
+                    .setSize(100, 50)
+                    .setColor(Color.BLACK)
+                    .setLineSize(2f)
+                    .build();
+            case "Ellipse" -> new EllipseBuilder()
+                    .setPosition(x, y)
+                    .setSize(80, 40)
+                    .setColor(Color.RED)
+                    .build();
+            case "Circle" -> new CircleBuilder()
+                    .setPosition(x, y)
+                    .setSize(50,50)
+                    .setColor(Color.BLUE)
+                    .setLineSize(3f)
+                    .build();
+            case "Line" -> new LineBuilder()
+                    .setStart(x, y)
+                    .setEnd(x + 100, y + 100)
+                    .setColor(Color.GREEN)
+                    .setLineSize(1.5f)
+                    .build();
+            case "ArcShape" -> new ArcBuilder()
+                    .setPosition(x, y)
+                    .setSize(100, 50)
+                    .setColor(Color.MAGENTA)
+                    .setLineSize(2f)
+                    .build();
+            case "Brush" -> new BrushBuilder()
+                    .setColor(Color.CYAN)
+                    .setLineSize(1f)
+                    .build();
+            default -> null;
+        };
     }
 }
+
 
 abstract class ColoredShape {
     protected Color color = Color.BLACK;
@@ -744,45 +748,7 @@ class ShapeGroup extends ColoredShape{
         return children;
     }
 }
-class RectangleBuilder implements ShapeBuilder {
-    private double x, y, width, height;
-    private Color color = Color.BLACK;
-    private float lineSize = 1f;
 
-    @Override
-    public ShapeBuilder setPosition(double x, double y) {
-        this.x = x;
-        this.y = y;
-        return this;
-    }
-
-    @Override
-    public ShapeBuilder setSize(double width, double height) {
-        this.width = width;
-        this.height = height;
-        return this;
-    }
-
-    @Override
-    public ShapeBuilder setColor(Color color) {
-        this.color = color;
-        return this;
-    }
-
-    @Override
-    public ShapeBuilder setLineSize(float lineSize) {
-        this.lineSize = lineSize;
-        return this;
-    }
-
-    @Override
-    public ColoredShape build() {
-        RectangleShape rect = new RectangleShape(x, y, width, height);
-        rect.setColor(color);
-        rect.setLineSize(lineSize);
-        return rect;
-    }
-}
 class RectangleShape extends ColoredShape {
     private final Rectangle2D.Double rect = new Rectangle2D.Double();
 
@@ -1113,4 +1079,288 @@ interface ShapeObserver {
 }
 
 
-//mm
+
+interface ShapeBuilder {
+    ShapeBuilder setPosition(double x, double y);
+    ShapeBuilder setSize(double width, double height);
+    ShapeBuilder setColor(Color color);
+    ShapeBuilder setLineSize(float lineSize);
+    ColoredShape build();
+}
+
+
+class RectangleBuilder implements ShapeBuilder {
+    private double x, y, width, height;
+    private Color color = Color.BLACK;
+    private float lineSize = 1f;
+
+    @Override
+    public ShapeBuilder setPosition(double x, double y) {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setSize(double width, double height) {
+        this.width = width;
+        this.height = height;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setColor(Color color) {
+        this.color = color;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setLineSize(float lineSize) {
+        this.lineSize = lineSize;
+        return this;
+    }
+
+    @Override
+    public ColoredShape build() {
+        RectangleShape rect = new RectangleShape(x, y, width, height);
+        rect.setColor(color);
+        rect.setLineSize(lineSize);
+        return rect;
+    }
+}
+
+
+class EllipseBuilder implements ShapeBuilder {
+    private double x, y, width, height;
+    private Color color = Color.BLACK;
+    private float lineSize = 1f;
+    private boolean isCircle = false;
+
+    public EllipseBuilder setCircle(boolean isCircle) {
+        this.isCircle = isCircle;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setPosition(double x, double y) {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setSize(double width, double height) {
+        this.width = width;
+        this.height = height;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setColor(Color color) {
+        this.color = color;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setLineSize(float lineSize) {
+        this.lineSize = lineSize;
+        return this;
+    }
+
+    @Override
+    public ColoredShape build() {
+        EllipseShape ellipse = new EllipseShape(x, y, width, height, isCircle);
+        ellipse.setColor(color);
+        ellipse.setLineSize(lineSize);
+        return ellipse;
+    }
+}
+class LineBuilder implements ShapeBuilder {
+    private double x1, y1, x2, y2;
+    private Color color = Color.BLACK;
+    private float lineSize = 1f;
+
+    public LineBuilder setStart(double x, double y) {
+        this.x1 = x;
+        this.y1 = y;
+        return this;
+    }
+
+    public LineBuilder setEnd(double x, double y) {
+        this.x2 = x;
+        this.y2 = y;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setPosition(double x, double y) {
+        this.x1 = x;
+        this.y1 = y;
+        this.x2 = x;
+        this.y2 = y;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setSize(double width, double height) {
+        this.x2 = x1 + width;
+        this.y2 = y1 + height;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setColor(Color color) {
+        this.color = color;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setLineSize(float lineSize) {
+        this.lineSize = lineSize;
+        return this;
+    }
+
+    @Override
+    public ColoredShape build() {
+        LineShape line = new LineShape(x1, y1, x2, y2);
+        line.setColor(color);
+        line.setLineSize(lineSize);
+        return line;
+    }
+}
+class ArcBuilder implements ShapeBuilder {
+    private double x, y, width, height, startAngle = 0, extent = 180;
+    private Color color = Color.BLACK;
+    private float lineSize = 1f;
+
+    public ArcBuilder setAngles(double start, double extent) {
+        this.startAngle = start;
+        this.extent = extent;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setPosition(double x, double y) {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setSize(double width, double height) {
+        this.width = width;
+        this.height = height;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setColor(Color color) {
+        this.color = color;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setLineSize(float lineSize) {
+        this.lineSize = lineSize;
+        return this;
+    }
+
+    @Override
+    public ColoredShape build() {
+        ArcShape arc = new ArcShape(x, y, width, height, startAngle, extent);
+        arc.setColor(color);
+        arc.setLineSize(lineSize);
+        return arc;
+    }
+}
+class BrushBuilder implements ShapeBuilder {
+    private final Path2D.Double path = new Path2D.Double();
+    private Color color = Color.BLACK;
+    private float lineSize = 1f;
+
+    public BrushBuilder addPoint(double x, double y) {
+        if (path.getCurrentPoint() == null) {
+            path.moveTo(x, y);
+        } else {
+            path.lineTo(x, y);
+        }
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setPosition(double x, double y) {
+        addPoint(x, y);
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setSize(double width, double height) {
+        // Nie dotyczy BrushShape
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setColor(Color color) {
+        this.color = color;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setLineSize(float lineSize) {
+        this.lineSize = lineSize;
+        return this;
+    }
+
+    @Override
+    public ColoredShape build() {
+        BrushShape brush = new BrushShape(0, 0);
+        brush.setColor(color);
+        brush.setLineSize(lineSize);
+        return brush;
+    }
+}
+
+class CircleBuilder implements ShapeBuilder {
+    private double x, y, size;
+    private Color color = Color.BLACK;
+    private float lineSize = 1f;
+
+    @Override
+    public ShapeBuilder setPosition(double x, double y) {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setSize(double width, double height) {
+        // W przypadku koła szerokość i wysokość muszą być równe
+        this.size = Math.min(width, height);
+        return this;
+    }
+
+    public CircleBuilder setSize(double size) {
+        this.size = size;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setColor(Color color) {
+        this.color = color;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setLineSize(float lineSize) {
+        this.lineSize = lineSize;
+        return this;
+    }
+
+    @Override
+    public ColoredShape build() {
+        EllipseShape circle = new EllipseShape(x, y, size, size, true);
+        circle.setColor(color);
+        circle.setLineSize(lineSize);
+        return circle;
+    }
+}
