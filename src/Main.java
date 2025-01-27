@@ -542,6 +542,14 @@ interface Command {
     void redo();
 }
 
+interface ShapeBuilder {
+    ShapeBuilder setPosition(double x, double y);
+    ShapeBuilder setSize(double width, double height);
+    ShapeBuilder setColor(Color color);
+    ShapeBuilder setLineSize(float lineSize);
+    ColoredShape build();
+}
+
 class AddShapeCommand implements Command {
     private final DrawingPanel panel;
     private final ColoredShape shape;
@@ -736,7 +744,45 @@ class ShapeGroup extends ColoredShape{
         return children;
     }
 }
+class RectangleBuilder implements ShapeBuilder {
+    private double x, y, width, height;
+    private Color color = Color.BLACK;
+    private float lineSize = 1f;
 
+    @Override
+    public ShapeBuilder setPosition(double x, double y) {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setSize(double width, double height) {
+        this.width = width;
+        this.height = height;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setColor(Color color) {
+        this.color = color;
+        return this;
+    }
+
+    @Override
+    public ShapeBuilder setLineSize(float lineSize) {
+        this.lineSize = lineSize;
+        return this;
+    }
+
+    @Override
+    public ColoredShape build() {
+        RectangleShape rect = new RectangleShape(x, y, width, height);
+        rect.setColor(color);
+        rect.setLineSize(lineSize);
+        return rect;
+    }
+}
 class RectangleShape extends ColoredShape {
     private final Rectangle2D.Double rect = new Rectangle2D.Double();
 
@@ -1065,3 +1111,6 @@ class PolygonShape extends ColoredShape {
 interface ShapeObserver {
     void onShapeSelected(String shapeName);
 }
+
+
+//mm
